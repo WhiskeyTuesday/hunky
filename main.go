@@ -28,11 +28,26 @@ import (
 	"io"
 	"os"
 	"os/exec"
+	"runtime/debug"
 	"strconv"
 	"strings"
 )
 
-const version = "0.1.0"
+// version is the fallback reported by `--version` for a local `go build`, where
+// no module version is embedded. For `go install …@vX.Y.Z` (or `@latest`
+// resolving to a tag), resolveVersion prefers the real module version that Go
+// stamps into the build info, so a published binary self-reports its tag.
+// Match the `vX.Y.Z` tag format so both paths print the same shape.
+const version = "v0.1.0"
+
+func resolveVersion() string {
+	if info, ok := debug.ReadBuildInfo(); ok {
+		if v := info.Main.Version; v != "" && v != "(devel)" {
+			return v
+		}
+	}
+	return version
+}
 
 type Hunk struct {
 	header   string // full @@ line
@@ -57,7 +72,7 @@ func main() {
 	}
 	for _, a := range args {
 		if a == "--version" || a == "-V" {
-			fmt.Println("hunky " + version + " — man, I'm pretty.")
+			fmt.Println("hunky " + resolveVersion() + " — man, I'm pretty.")
 			os.Exit(0)
 		}
 	}
