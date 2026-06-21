@@ -1,2 +1,5 @@
-# built binary
+# built binaries
 /hunky
+/hunky-cli/hunky
+/hunky-cli/hunky-cli
+/hunky-cli/mock/mock
