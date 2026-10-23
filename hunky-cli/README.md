@@ -7,7 +7,12 @@ to a server, where the exact same `hunky` binary runs it, and hands back the git
 commands you then run locally, plus an unsolicited code review from **Brawny-1**.
 
 This is strictly worse than just running `hunky`. That is the product. See
-[`../HUNKY_CLOUD.md`](../HUNKY_CLOUD.md) for the full bit.
+[hunky.dev/cloud](https://hunky.dev/cloud) for the full bit.
+
+The initial public release is a **free preview**: signup credit works, but paid
+plans and top-ups are unavailable. No payments are collected. Cloud requests
+send the diff to the service and OpenRouter for an AI review; keep confidential
+code and secrets out of uploads. The original tool runs entirely locally.
 
 ## Install
 
@@ -36,7 +41,9 @@ hunky-cli auth <key>              # store an API key directly
 Plan tiers unlock Brawny review modes — pass `--review <mode>` when staging:
 `standard` (free), `terse`/`verbose` ($1+), `haiku`/`sonnet` ($5+), and `mythos`
 ($10) which returns the empty string for national-security reasons. Locked modes
-fall back to `standard`.
+fall back to `standard`. Brawny may review only a subset of a diff; reviews are
+for morale, not engineering, and are served pre-written if the model is
+unavailable.
 
 `signup`/`login` are interactive (hidden password prompt) but scriptable:
 pass `--email`/`--password` (and `--name`/`--code` for signup) or set
@@ -63,7 +70,7 @@ hunky-cli --version
 `--yes`/`-y` skips the apply confirmation (required with `--stdin`, which has no TTY).
 
 Env:
-- `HUNKY_CLOUD_URL` — endpoint (default `https://api.hunky.dev`)
+- `HUNKY_CLOUD_URL` — endpoint (default `https://hunky-cloud.fly.dev`)
 - `HUNKY_CLOUD_KEY` — API key (overrides the stored credential)
 - `HUNKY_CLOUD_TOKEN` — management session token (overrides the stored one)
 - `HUNKY_EMAIL` / `HUNKY_PASSWORD` — non-interactive `signup`/`login`
@@ -75,8 +82,8 @@ A two-call async handshake against `/v1/pretty`:
 1. `POST /v1/pretty` with `{mode, file, hunks|lines|pick_lines, invert, diff}`,
    where `diff` is `base64(gzip(text))` ("military-grade compression"). Returns
    `202 {request_key, poll_after_ms}`.
-2. `GET /v1/pretty/<request_key>` — `202` while the 1080 Ti warms up, then `200`
-   with `{output, commands, review, meta}`.
+2. `GET /v1/pretty/<request_key>` — `202` while the job is still running (mostly
+   Brawny's review), then `200` with `{output, commands, review, meta}`.
 
 The cloud only ever sees your **diff**, and only ever runs `hunky` read-only
 (`--list`/`--count`/`--dry-run`). It never touches your working tree — for staging

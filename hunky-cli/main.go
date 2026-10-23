@@ -8,7 +8,7 @@
 // This is, of course, strictly worse than just running `hunky`. That is the
 // product. See HUNKY_CLOUD.md.
 //
-// Endpoint:    $HUNKY_CLOUD_URL  (default https://api.hunky.dev)
+// Endpoint:    $HUNKY_CLOUD_URL  (default https://hunky-cloud.fly.dev)
 // Credentials: `hunky-cli auth <key>` → ~/.config/hunky/credentials, or $HUNKY_CLOUD_KEY
 package main
 
@@ -29,9 +29,11 @@ import (
 	"time"
 )
 
-const version = "v0.1.0"
+const version = "v0.2.0"
 
-const defaultEndpoint = "https://api.hunky.dev"
+const defaultEndpoint = "https://hunky-cloud.fly.dev"
+
+var cloudHTTPClient = &http.Client{Timeout: 30 * time.Second}
 
 // ── wire types ───────────────────────────────────────────────────────────────
 
@@ -58,7 +60,6 @@ type prettyResult struct {
 	Commands []string `json:"commands"` // shell commands to run after confirm (stage)
 	Review   string   `json:"review"`   // Brawny-1's unsolicited code review
 	Meta     struct {
-		GPU    string `json:"gpu"`
 		Model  string `json:"model"`
 		Millis int    `json:"millis"`
 	} `json:"meta"`
@@ -288,7 +289,7 @@ func pretty(req prettyRequest, rawDiff []byte) (*prettyResult, error) {
 	}
 	post.Header.Set("Content-Type", "application/json")
 	post.Header.Set("Authorization", "Bearer "+key)
-	presp, err := http.DefaultClient.Do(post)
+	presp, err := cloudHTTPClient.Do(post)
 	if err != nil {
 		return nil, fmt.Errorf("could not reach Hunky Cloud at %s: %w", endpoint, err)
 	}
@@ -311,7 +312,6 @@ func pretty(req prettyRequest, rawDiff []byte) (*prettyResult, error) {
 		wait = 500 * time.Millisecond
 	}
 	step("Redeeming request key…")
-	step("Waking the 1080 Ti…")
 	step("Brawny-1 is reviewing your changes…")
 
 	// Poll for the result (the handshake we did not need).
@@ -320,14 +320,14 @@ func pretty(req prettyRequest, rawDiff []byte) (*prettyResult, error) {
 		time.Sleep(wait)
 		get, _ := http.NewRequest("GET", endpoint+"/v1/pretty/"+sub.RequestKey, nil)
 		get.Header.Set("Authorization", "Bearer "+key)
-		gresp, err := http.DefaultClient.Do(get)
+		gresp, err := cloudHTTPClient.Do(get)
 		if err != nil {
 			return nil, err
 		}
 		if gresp.StatusCode == http.StatusAccepted {
 			gresp.Body.Close()
 			if time.Now().After(deadline) {
-				return nil, fmt.Errorf("timed out (the 1080 Ti may have overheated)")
+				return nil, fmt.Errorf("timed out")
 			}
 			continue
 		}
@@ -513,7 +513,7 @@ Stage (use plane — routes through Hunky Cloud, key-authed):
                                     (each unlocked by your plan)
   hunky-cli --version                print version
 
-Env: HUNKY_CLOUD_URL (default https://api.hunky.dev), HUNKY_CLOUD_KEY,
+Env: HUNKY_CLOUD_URL (default https://hunky-cloud.fly.dev), HUNKY_CLOUD_KEY,
      HUNKY_CLOUD_TOKEN; non-interactive auth: HUNKY_EMAIL, HUNKY_PASSWORD.
 
 It is slower, costlier, and less private than just running hunky. That's the

@@ -97,7 +97,7 @@ func mgmtDo(method, path string, body any, token string) (*http.Response, []byte
 	if token != "" {
 		req.Header.Set("Authorization", "Bearer "+token)
 	}
-	resp, err := http.DefaultClient.Do(req)
+	resp, err := cloudHTTPClient.Do(req)
 	if err != nil {
 		return nil, nil, fmt.Errorf("could not reach Hunky Cloud at %s: %w", apiBase(), err)
 	}
@@ -194,7 +194,7 @@ func cmdAccount(_ []string) {
 		Plan         string    `json:"plan"`
 		CreditCents  int       `json:"credit_cents"`
 		BalanceCents int       `json:"balance_cents"`
-		StagesCount  int       `json:"stages_count"`
+		RunsCount    int       `json:"runs_count"`
 		Keys         []keyInfo `json:"keys"`
 	}
 	_ = json.Unmarshal(data, &a)
@@ -202,8 +202,8 @@ func cmdAccount(_ []string) {
 	if plan == "" {
 		plan = "none (free / PAYG)"
 	}
-	fmt.Printf("Account:  %s\nPlan:     %s\nPromo:    $%.2f\nBalance:  $%.2f\nStages:   %d\nKeys:     %d\n",
-		a.Name, plan, float64(a.CreditCents)/100, float64(a.BalanceCents)/100, a.StagesCount, len(a.Keys))
+	fmt.Printf("Account:  %s\nPlan:     %s\nPromo:    $%.2f\nBalance:  $%.2f\nRuns:     %d\nKeys:     %d\n",
+		a.Name, plan, float64(a.CreditCents)/100, float64(a.BalanceCents)/100, a.RunsCount, len(a.Keys))
 	printKeys(a.Keys)
 }
 

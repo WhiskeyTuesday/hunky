@@ -50,7 +50,6 @@ type prettyResult struct {
 	Commands []string `json:"commands"`
 	Review   string   `json:"review"`
 	Meta     struct {
-		GPU    string `json:"gpu"`
 		Model  string `json:"model"`
 		Millis int    `json:"millis"`
 	} `json:"meta"`
@@ -116,7 +115,6 @@ func submit(w http.ResponseWriter, r *http.Request) {
 
 	var res prettyResult
 	res.Review = pickReview()
-	res.Meta.GPU = "1080 Ti"
 	res.Meta.Model = "Brawny-1"
 	switch req.Mode {
 	case "stage":
@@ -124,7 +122,7 @@ func submit(w http.ResponseWriter, r *http.Request) {
 	default: // list, count, dryrun
 		res.Output = output
 	}
-	res.Meta.Millis = int(time.Since(start).Milliseconds()) + 4000 // the cloud tax
+	res.Meta.Millis = int(time.Since(start).Milliseconds())
 
 	mu.Lock()
 	seq++
@@ -147,7 +145,7 @@ func retrieve(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	if time.Now().Before(j.readyAt) {
-		w.WriteHeader(http.StatusAccepted) // still warming the 1080 Ti
+		w.WriteHeader(http.StatusAccepted)
 		return
 	}
 	w.Header().Set("Content-Type", "application/json")
